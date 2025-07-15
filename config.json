@@ -1,4 +1,5 @@
 {
   "IotHubConnectionString": "HostName=cmgtestIoTHub2.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=+6Og9v6MwNPazLiM7yqchGQOvl5Zs61tFAIoTCGrceU=",
-  "DeviceIds": ["device01", "device02", "device03"]
+  "DeviceIds": ["device01", "device02", "device03"],
+  "LogFile": "log.txt"
 }

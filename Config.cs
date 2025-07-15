@@ -2,8 +2,10 @@ using System.Text.Json.Nodes;
 
 namespace IotDeviceMigrator;
 
-public record Config(string HubConnectionString, List<string> DeviceIds)
+public record Config(string HubConnectionString, string LogFile, List<string> DeviceIds)
 {
+    private const string DefaultLogFile = "log.txt";
+
     public static async Task<Config> FromFileAsync(string fileName)
     {
         var config = JsonNode.Parse(await File.ReadAllTextAsync("config.json"));
@@ -18,7 +20,8 @@ public record Config(string HubConnectionString, List<string> DeviceIds)
             .Select(e => e?.GetValue<string>())
             .OfType<string>()
             .ToList() ?? throw new ConfigParseException($"DeviceIds not found in {fileName}");
-        return new Config(connectionString, deviceIds);
+        var logFile = config["LogFile"]?.GetValue<string>() ?? DefaultLogFile;
+        return new Config(connectionString, logFile, deviceIds);
     }
 }
 
