@@ -1,27 +1,30 @@
-﻿// See https://aka.ms/new-console-template for more information
-
+﻿using IotDeviceMigrator;
 using Microsoft.Azure.Devices;
-
-const string IotHubConnectionString =
-    "HostName=cmgtestIoTHub2.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=+6Og9v6MwNPazLiM7yqchGQOvl5Zs61tFAIoTCGrceU=";
-const string DeviceId   = "device01";
-const string MethodName = "asd";
-
-using var serviceClient =
-    ServiceClient.CreateFromConnectionString(IotHubConnectionString);
-
-var methodInvocation = new CloudToDeviceMethod(MethodName)
+const string configFile = "config.json";
+const string logFile = "log.txt";
+try
 {
-    // How long you’ll wait for the device to respond
-    ResponseTimeout   = TimeSpan.FromSeconds(30),
-    // (Optional) how long to wait for IoT Hub to connect to the device
-    ConnectionTimeout = TimeSpan.FromSeconds(10)
-};
+    var (hubConnectionString, deviceIds) = await Config.FromFileAsync(configFile);
+    using var serviceClient = ServiceClient.CreateFromConnectionString(hubConnectionString);
+    using var registry = RegistryManager.CreateFromConnectionString(hubConnectionString);
+    var processes = deviceIds.Select(id => new DeviceMigrationProcess(id, serviceClient, registry)).ToList();
+    foreach (var p in processes)
+    {
+        await p.MigrateAsync();
+    }
+}
+catch (ConfigParseException e)
+{
+    await Console.Error.WriteLineAsync($"Error while parsing config: {e.Message}");
+}
+catch (MigrationException e)
+{
+    var message = $"Migration error: {e.Message}";
+    await Console.Error.WriteLineAsync(message);
+    await File.AppendAllLinesAsync(logFile, [message]);
+}
+catch (Exception e)
+{
+    await Console.Error.WriteLineAsync($"Error: {e.Message}");
+}
 
-// (Optional) JSON payload for the device method
-methodInvocation.SetPayloadJson("{\"example\":\"data\"}");
-
-var result = await serviceClient.InvokeDeviceMethodAsync(DeviceId, methodInvocation);
-
-Console.WriteLine($"Status  : {result.Status}");
-Console.WriteLine($"Payload : {result.GetPayloadAsJson()}");
