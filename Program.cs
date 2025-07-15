@@ -7,7 +7,11 @@ try
     var (hubConnectionString, deviceIds) = await Config.FromFileAsync(configFile);
     using var serviceClient = ServiceClient.CreateFromConnectionString(hubConnectionString);
     using var registry = RegistryManager.CreateFromConnectionString(hubConnectionString);
-    var processes = deviceIds.Select(id => new DeviceMigrationProcess(id, serviceClient, registry)).ToList();
+
+    var processes = deviceIds
+        .Select(id => new DeviceMigrationProcess(id, serviceClient, registry))
+        .ToList();
+
     foreach (var p in processes)
     {
         await p.MigrateAsync();

@@ -30,14 +30,15 @@ public class DeviceMigrationProcess(string deviceId, ServiceClient serviceClient
 
             // is the firmware correct?
             string firmwareVersion = twinInQas.Properties.Reported["devInfo"]["swVersion"]; // TODO: how do I get firmware version?
-            if (!firmwareVersion.Equals(CorrectFirmwareVersion, StringComparison.InvariantCultureIgnoreCase))
+            var isFirmwareCorrect = firmwareVersion.Equals(CorrectFirmwareVersion, StringComparison.InvariantCultureIgnoreCase);
+            if (!isFirmwareCorrect)
             {
                 throw new MigrationException(deviceId, $"Firmware version '{firmwareVersion}' is not correct. Should be '{CorrectFirmwareVersion}'");
             }
 
             // setup secondary env: QAS IoTHub
             var changeSecondaryEnvResult = await InvokeMethodAsync(SetIotConfigMethod, ChangeSecondaryEnvPayload);
-            if (changeSecondaryEnvResult.Status != 200) // TODO: What status do I check?
+            if (changeSecondaryEnvResult.Status != 200)
             {
                 throw new DeviceMethodInvocationException(deviceId, SetIotConfigMethod, $"Failed to set up secondary environment: {changeSecondaryEnvResult.GetPayloadAsJson()}");
             }
