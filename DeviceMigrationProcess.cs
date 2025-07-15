@@ -9,12 +9,13 @@ public class DeviceMigrationProcess(string deviceId, ServiceClient serviceClient
     private const string SetIotConfigMethod = "setIotConfig";
 
     private const string CorrectFirmwareVersion = "v3.1-2507031257";
+
     public async Task MigrateAsync()
     {
         while (true)
         {
             // Does device send data to server?
-            var getConfigResult = await InvokeMethodAsync(GetConfigMethod, "{}");
+            var getConfigResult = await InvokeMethodAsync(GetConfigMethod, new {});
             if (getConfigResult.Status == 200)
             {
                 return; // We are done
@@ -48,6 +49,8 @@ public class DeviceMigrationProcess(string deviceId, ServiceClient serviceClient
             {
                 throw new DeviceMethodInvocationException(deviceId, SetIotConfigMethod, $"Failed to change active environment: {changeActiveEnvResult.GetPayloadAsJson()}");
             }
+
+            Thread.Sleep(TimeSpan.FromSeconds(1));
         }
     }
 
