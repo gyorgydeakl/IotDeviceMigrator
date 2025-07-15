@@ -1,5 +1,6 @@
 ﻿using IotDeviceMigrator;
 using Microsoft.Azure.Devices;
+
 const string configFile = "config.json";
 const string logFile = "log.txt";
 try
@@ -16,6 +17,10 @@ try
     {
         await p.MigrateAsync();
     }
+
+    var finalMessage = $"Migration completed successfully for devices {string.Join(", ", deviceIds)}";
+    Console.WriteLine(finalMessage);
+    await File.AppendAllLinesAsync(logFile, [finalMessage]);
 }
 catch (ConfigParseException e)
 {
@@ -31,4 +36,3 @@ catch (Exception e)
 {
     await Console.Error.WriteLineAsync($"Error: {e.Message}");
 }
-
