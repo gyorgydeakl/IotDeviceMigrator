@@ -58,7 +58,7 @@ public class DeviceMigrationProcess(string deviceId, ServiceClient serviceClient
             ResponseTimeout   = TimeSpan.FromSeconds(30),
             ConnectionTimeout = TimeSpan.FromSeconds(10)
         };
-        methodInvocation.SetPayloadJson(JsonSerializer.Serialize(payload));
+        methodInvocation.SetPayloadJson(JsonSerializer.Serialize(payload, JsonSerializerOptions.Web));
         return await serviceClient.InvokeDeviceMethodAsync(deviceId, methodInvocation);
     }
 
