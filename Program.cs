@@ -1,47 +1,56 @@
 ﻿using IotDeviceMigrator;
 using Microsoft.Azure.Devices;
 
-const string defaultConfigFile = "config.json";
-var logFile = "log.txt";
-
-try
+internal class Program
 {
-    if (args.Length > 1)
+    private const string DefaultConfigFile = "config.json";
+    private static string _logFile = "log.txt";
+
+    public static async Task Main(string[] args)
     {
-        throw new ArgumentException("Too many arguments. Only one argument is allowed: config file name.");
+        try
+        {
+            var (hubConnectionString, logFile, deviceIds) = await Config.FromFileAsync(GetConfigFileName(args));
+            _logFile = logFile;
+
+            using var serviceClient = ServiceClient.CreateFromConnectionString(hubConnectionString);
+            using var registry = RegistryManager.CreateFromConnectionString(hubConnectionString);
+
+            var processes = deviceIds
+                .Select(id => new DeviceMigrationProcess(id, serviceClient, registry))
+                .ToList();
+
+            foreach (var p in processes)
+            {
+                await p.MigrateAsync();
+            }
+
+            var finalMessage = $"Migration completed successfully for devices {string.Join(", ", deviceIds)}";
+            Console.WriteLine(finalMessage);
+            await File.AppendAllLinesAsync(_logFile, [finalMessage]);
+        }
+        catch (ConfigParseException e)
+        {
+            await Console.Error.WriteLineAsync($"Error while parsing config: {e.Message}");
+        }
+        catch (MigrationException e)
+        {
+            var message = $"Migration error: {e.Message}";
+            await Console.Error.WriteLineAsync(message);
+            await File.AppendAllLinesAsync(_logFile, [message]);
+        }
+        catch (Exception e)
+        {
+            await Console.Error.WriteLineAsync($"Error: {e.Message}");
+        }
     }
-    var configFile = args.ElementAtOrDefault(1) ?? defaultConfigFile;
 
-    var config = await Config.FromFileAsync(configFile);
-    logFile = config.LogFile;
-
-    using var serviceClient = ServiceClient.CreateFromConnectionString(config.HubConnectionString);
-    using var registry = RegistryManager.CreateFromConnectionString(config.HubConnectionString);
-
-    var processes = config.DeviceIds
-        .Select(id => new DeviceMigrationProcess(id, serviceClient, registry))
-        .ToList();
-
-    foreach (var p in processes)
+    private static string GetConfigFileName(string[] args)
     {
-        await p.MigrateAsync();
+        if (args.Length > 1)
+        {
+            throw new ArgumentException("Too many arguments. Only 1 (or 0) argument is allowed: config file name.");
+        }
+        return args.ElementAtOrDefault(1) ?? DefaultConfigFile;
     }
-
-    var finalMessage = $"Migration completed successfully for devices {string.Join(", ", config.DeviceIds)}";
-    Console.WriteLine(finalMessage);
-    await File.AppendAllLinesAsync(logFile, [finalMessage]);
-}
-catch (ConfigParseException e)
-{
-    await Console.Error.WriteLineAsync($"Error while parsing config: {e.Message}");
-}
-catch (MigrationException e)
-{
-    var message = $"Migration error: {e.Message}";
-    await Console.Error.WriteLineAsync(message);
-    await File.AppendAllLinesAsync(logFile, [message]);
-}
-catch (Exception e)
-{
-    await Console.Error.WriteLineAsync($"Error: {e.Message}");
 }
