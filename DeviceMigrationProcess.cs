@@ -5,7 +5,6 @@ namespace IotDeviceMigrator;
 
 public class DeviceMigrationProcess(string deviceId, ServiceClient serviceClient, RegistryManager registryManager)
 {
-    // TODO: method names?
     private const string GetConfigMethod = "getIotConfig";
     private const string SetIotConfigMethod = "setIotConfig";
 
