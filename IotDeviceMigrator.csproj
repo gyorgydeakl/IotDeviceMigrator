@@ -13,6 +13,7 @@
 
     <ItemGroup Condition="'$(Configuration)' == 'Debug'">
         <None Update="config.json" CopyToOutputDirectory="PreserveNewest" />
+        <None Update="devices.csv" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
 </Project>
