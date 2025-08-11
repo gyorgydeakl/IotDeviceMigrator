@@ -1,5 +1,7 @@
-﻿using IotDeviceMigrator;
-using Microsoft.Azure.Devices;
+﻿using IotDeviceMigrator.Client;
+using IotDeviceMigrator.Config;
+using IotDeviceMigrator.Migration;
+using Serilog;
 
 internal class Program
 {
@@ -7,10 +9,11 @@ internal class Program
 
     public static async Task Main(string[] args)
     {
+        InitLogger();
         try
         {
-            var config = await Config.FromFileAsync(GetConfigFileName(args)); // device ids from csv
-            Console.WriteLine("Parsed Config: " + config.ToJsonString());
+            var config = await Config.FromFileAsync(GetConfigFileName(args));
+            Log.Information("Parsed Config: {ConfigJson}", config.ToJsonString());
 
             var lines = await File.ReadAllLinesAsync(config.DeviceIdImport);
 
@@ -24,29 +27,45 @@ internal class Program
             {
                 try
                 {
-                    await p.MigrateAsync();
+                    var result = await p.MigrateAsync();
+                    Log.Information("Migration result: {Result}", result);
                 }
                 catch (MigrationException e)
                 {
                     var message = $"Migration error: {e.Message}";
-                    await Console.Error.WriteLineAsync(message);
+                    Log.Error(message);
                     await File.AppendAllLinesAsync(config.LogFile, [message]);
                 }
             }
 
             var finalMessage = $"Migration completed successfully for devices {string.Join(", ", lines)}";
-            Console.WriteLine(finalMessage);
+            Log.Information(finalMessage);
             await File.AppendAllLinesAsync(config.LogFile, [finalMessage]);
         }
         catch (ConfigParseException e)
         {
-            await Console.Error.WriteLineAsync($"Error while parsing config: {e.Message}");
+            Log.Fatal("Error while parsing config: {Message}", e.Message);
         }
         catch (Exception e)
         {
-            await Console.Error.WriteLineAsync($"Error: {e.Message}");
-            await Console.Error.WriteLineAsync(e.StackTrace);
+            Log.Fatal("Error: {Message}", e);
         }
+    }
+
+    private static void InitLogger()
+    {
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Information()
+            .Enrich.FromLogContext()
+            .WriteTo.Console(outputTemplate:
+                "{Timestamp:HH:mm:ss} [{Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
+            .WriteTo.File(
+                path: "logs/migrate-.log",
+                rollingInterval: RollingInterval.Day,
+                retainedFileCountLimit: 7,
+                shared: true,
+                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
+            .CreateLogger();
     }
 
     private static string GetConfigFileName(string[] args)
