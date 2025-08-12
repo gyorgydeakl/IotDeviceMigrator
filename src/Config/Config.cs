@@ -5,11 +5,10 @@ namespace IotDeviceMigrator.Config;
 
 public record Config
 {
-    public required string SourceHubConnectionString {get; init;}
-    public required string TargetHubConnectionString {get; init;}
     public required string LogFile {get; init;}
     public required string DeviceIdImport {get; init;}
-    public required MigrationConfig MigrationConfig {get; init;}
+    public required MigrationConfig Migration {get; init;}
+    public required ConnectionConfig Connection {get; init;}
 
     public static async Task<Config> FromFileAsync(string configFileName)
     {
@@ -21,11 +20,10 @@ public record Config
 
         return new Config
         {
-            SourceHubConnectionString = config.ExpectValue<string>("SourceIotHubConnectionString", configFileName),
-            TargetHubConnectionString = config.ExpectValue<string>("SourceIotHubConnectionString", configFileName),
+            Connection = ConnectionConfig.FromJson(config["Connection"], configFileName),
             LogFile = config.ExpectValue<string>("LogFile", configFileName),
             DeviceIdImport = config.ExpectValue<string>("DeviceIdImport", configFileName),
-            MigrationConfig = MigrationConfig.FromJson(config["Migration"], configFileName)
+            Migration = MigrationConfig.FromJson(config["Migration"], configFileName)
         };
     }
 
@@ -37,3 +35,5 @@ public record Config
         });
     }
 }
+
+public class ConfigParseException(string message) : Exception(message);

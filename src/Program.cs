@@ -23,33 +23,43 @@ internal class Program
                 .Select(id => DeviceMigrationProcess.Create<AzureIotClient, AzureIotClient>(id, config))
                 .ToList();
 
-            foreach (var p in processes)
-            {
-                try
-                {
-                    var result = await p.MigrateAsync();
-                    Log.Information("Migration result: {Result}", result);
-                }
-                catch (MigrationException e)
-                {
-                    var message = $"Migration error: {e.Message}";
-                    Log.Error(message);
-                    await File.AppendAllLinesAsync(config.LogFile, [message]);
-                }
-            }
+            var errors = await RunMigrationsForAllDevicesAsync(processes);
+            var successfulDevices = processes.Select(p => p.DeviceId).Except(errors.Keys).ToList();
 
-            var finalMessage = $"Migration completed successfully for devices {string.Join(", ", lines)}";
-            Log.Information(finalMessage);
-            await File.AppendAllLinesAsync(config.LogFile, [finalMessage]);
+            Log.Information("Migrations finished for devices {Devices}", string.Join(", ", lines));
+            Log.Information(
+                "Migrations were successful for {Count} devices in total: {Devices}",
+                successfulDevices.Count,
+                string.Join(", ", successfulDevices)
+                );
         }
         catch (ConfigParseException e)
         {
-            Log.Fatal("Error while parsing config: {Message}", e.Message);
+            Log.Fatal(e, "Error while parsing config: {Message}", e.Message);
         }
         catch (Exception e)
         {
-            Log.Fatal("Error: {Message}", e);
+            Log.Fatal(e, "Error: {Err}", e);
         }
+    }
+
+    private static async Task<Dictionary<string, MigrationException>> RunMigrationsForAllDevicesAsync(List<DeviceMigrationProcess> processes)
+    {
+        Dictionary<string, MigrationException> errors = new();
+        foreach (var p in processes)
+        {
+            try
+            {
+                var result = await p.MigrateAsync();
+                Log.Information("Migration result: {Result}", result);
+            }
+            catch (MigrationException e)
+            {
+                errors[p.DeviceId] = e;
+                Log.Error(e, "Migration error for device {DeviceId}", p.DeviceId);
+            }
+        }
+        return errors;
     }
 
     private static void InitLogger()

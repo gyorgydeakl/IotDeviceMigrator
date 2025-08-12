@@ -1,7 +1,10 @@
+using IotDeviceMigrator.Client;
+
 namespace IotDeviceMigrator.Migration;
 
-public record MigrationStep
+public interface IMigrationStep
 {
-    public required string Name { get; init; }
-    public required Func<Task<MigrationResult?>> StepAsync { get; init; }
+    string Name { get; }
+    IIotClient HubClient { get; }
+    Task<MigrationResult?> StepAsync(string deviceId);
 }

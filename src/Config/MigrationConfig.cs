@@ -7,6 +7,7 @@ public record MigrationConfig
     public required int NumberOfRetries {get; init;}
     public required int RetryDelayInSeconds {get; init;}
     public required string CorrectFirmwareVersion {get; init;}
+    public required string[] FirmwarePath {get; init;}
 
     public static MigrationConfig FromJson(JsonNode? json, string configFileName)
     {
@@ -18,7 +19,8 @@ public record MigrationConfig
         {
             NumberOfRetries = json.ExpectValue<int>("NumberOfRetries", configFileName),
             RetryDelayInSeconds = json.ExpectValue<int>("RetryDelayInSeconds", configFileName),
-            CorrectFirmwareVersion = json.ExpectValue<string>("CorrectFirmwareVersion", configFileName)
+            CorrectFirmwareVersion = json.ExpectValue<string>("CorrectFirmwareVersion", configFileName),
+            FirmwarePath = json.ExpectArray<string>("FirmwarePath", configFileName)
         };
     }
 }

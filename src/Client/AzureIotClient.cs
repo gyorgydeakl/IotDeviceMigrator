@@ -9,10 +9,13 @@ public class AzureIotClient : ISourceIotClient, ITargetIotClient
 {
     public required ServiceClient ServiceClient { private get; init;}
     public required RegistryManager Registry { private get; init;}
+    public required string Name { get; init;}
+
 
     static ITargetIotClient ITargetIotClient.CreateFromConnectionString(string connectionString) =>
         new AzureIotClient
         {
+            Name = connectionString.Split(';')[0].Split('=')[1],
             ServiceClient = ServiceClient.CreateFromConnectionString(connectionString),
             Registry = RegistryManager.CreateFromConnectionString(connectionString)
         };
@@ -20,6 +23,7 @@ public class AzureIotClient : ISourceIotClient, ITargetIotClient
     static ISourceIotClient ISourceIotClient.CreateFromConnectionString(string connectionString) =>
         new AzureIotClient
         {
+            Name = connectionString.Split(';')[0].Split('=')[1],
             ServiceClient = ServiceClient.CreateFromConnectionString(connectionString),
             Registry = RegistryManager.CreateFromConnectionString(connectionString)
         };
@@ -37,18 +41,19 @@ public class AzureIotClient : ISourceIotClient, ITargetIotClient
         return true;
     }
 
-    public async Task<TwinProperties> GetPropertiesAsync(string deviceId)
+    public async Task<TwinProperties?> GetPropertiesAsync(string deviceId)
     {
         var twin = await Registry.GetTwinAsync(deviceId);
-        return twin.Properties;
+        return twin?.Properties;
     }
+
 
     public async Task<CloudToDeviceMethodResult> InvokeMethodAsync(string deviceId, string methodName, object? payload)
     {
         var methodInvocation = new CloudToDeviceMethod(methodName)
         {
-            ResponseTimeout   = TimeSpan.FromSeconds(30),
-            ConnectionTimeout = TimeSpan.FromSeconds(10)
+            ResponseTimeout   = TimeSpan.FromSeconds(5),
+            ConnectionTimeout = TimeSpan.FromSeconds(5)
         };
         methodInvocation.SetPayloadJson(JsonSerializer.Serialize(payload, JsonSerializerOptions.Web));
         return await ServiceClient.InvokeDeviceMethodAsync(deviceId, methodInvocation);

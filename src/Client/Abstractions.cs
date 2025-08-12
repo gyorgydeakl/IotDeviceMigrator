@@ -5,6 +5,7 @@ namespace IotDeviceMigrator.Client;
 
 public interface IIotClient
 {
+    string Name { get; }
     Task<CloudToDeviceMethodResult> InvokeMethodAsync(string deviceId, string methodName, object? payload);
 }
 
@@ -16,6 +17,6 @@ public interface ITargetIotClient : IIotClient
 
 public interface ISourceIotClient : IIotClient
 {
-    Task<TwinProperties> GetPropertiesAsync(string deviceId);
+    Task<TwinProperties?> GetPropertiesAsync(string deviceId);
     static abstract ISourceIotClient CreateFromConnectionString(string connectionString);
 }
