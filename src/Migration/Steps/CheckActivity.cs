@@ -1,5 +1,6 @@
 using IotDeviceMigrator.Client;
 using Microsoft.Azure.Devices.Common.Exceptions;
+using Serilog;
 
 namespace IotDeviceMigrator.Migration.Steps;
 
@@ -17,6 +18,7 @@ public class CheckActivity(ITargetIotClient target) : IMigrationStep
         }
         catch (DeviceNotFoundException)
         {
+            Log.Information("Device '{deviceId}' did not respond in '{TargetHubName}'}", deviceId, target.Name);;
             return null;
         }
     }

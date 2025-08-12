@@ -12,7 +12,7 @@ public class CheckFirmwareVersion(ISourceIotClient source, MigrationConfig confi
         var properties = await source.GetPropertiesAsync(deviceId);
         if (properties is null)
         {
-            throw new MigrationException(deviceId, "Device properties are null. It might not exist in the source hub.");
+            throw new MigrationException(deviceId, $"Device properties are null; Unable check firmware version. This might be because it does not exist in '{source.Name}'.");
         }
 
         var reported = properties.Reported;

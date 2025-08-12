@@ -3,6 +3,9 @@ using IotDeviceMigrator.Config;
 using IotDeviceMigrator.Migration;
 using Serilog;
 
+using SourceClient = IotDeviceMigrator.Client.AzureIotClient;
+using TargetClient = IotDeviceMigrator.Client.AzureIotClient;
+
 internal class Program
 {
     private const string DefaultConfigFile = "config.json";
@@ -12,26 +15,32 @@ internal class Program
         InitLogger();
         try
         {
-            var config = await Config.FromFileAsync(GetConfigFileName(args));
+            var config = Config.FromFile(GetConfigFileName(args));
             Log.Information("Parsed Config: {ConfigJson}", config.ToJsonString());
 
-            var lines = await File.ReadAllLinesAsync(config.DeviceIdImport);
+            var deviceIds = ParseDeviceIds(config.DeviceIdImport);
+            Log.Information("Parsed device ids: {DeviceIds}", string.Join(", ", deviceIds));
 
-            var processes = lines
-                .Where(line => !string.IsNullOrWhiteSpace(line))
-                .Select(line => line.Split(';')[0])
-                .Select(id => DeviceMigrationProcess.Create<AzureIotClient, AzureIotClient>(id, config))
-                .ToList();
-
-            var errors = await RunMigrationsForAllDevicesAsync(processes);
-            var successfulDevices = processes.Select(p => p.DeviceId).Except(errors.Keys).ToList();
-
-            Log.Information("Migrations finished for devices {Devices}", string.Join(", ", lines));
+            var process = DeviceMigrationProcess.Create<SourceClient, TargetClient>(config);
             Log.Information(
-                "Migrations were successful for {Count} devices in total: {Devices}",
+                "This script is going to migrate these devices from '{SourceHubName}' to '{TargetHubName}'",
+                config.Connection.SourceHubName,
+                config.Connection.TargetHubName);
+
+            var errors = await process.MigrateAllAsync(deviceIds);
+            Log.Information("Migrations finished for all {DeviceCount} devices {Devices}", deviceIds.Length, string.Join(", ", deviceIds));
+
+            var unSuccessfulDevices = errors.Keys.ToList();
+            Log.Information(
+                "Migrations were unsuccessful for {Count} devices in total: {UnsuccessfulDevices}",
+                unSuccessfulDevices.Count,
+                string.Join(", ", unSuccessfulDevices));
+
+            var successfulDevices = deviceIds.Except(errors.Keys).ToList();
+            Log.Information(
+                "Migrations were successful for {Count} devices in total: {SuccessfulDevices}",
                 successfulDevices.Count,
-                string.Join(", ", successfulDevices)
-                );
+                string.Join(", ", successfulDevices));
         }
         catch (ConfigParseException e)
         {
@@ -43,24 +52,6 @@ internal class Program
         }
     }
 
-    private static async Task<Dictionary<string, MigrationException>> RunMigrationsForAllDevicesAsync(List<DeviceMigrationProcess> processes)
-    {
-        Dictionary<string, MigrationException> errors = new();
-        foreach (var p in processes)
-        {
-            try
-            {
-                var result = await p.MigrateAsync();
-                Log.Information("Migration result: {Result}", result);
-            }
-            catch (MigrationException e)
-            {
-                errors[p.DeviceId] = e;
-                Log.Error(e, "Migration error for device {DeviceId}", p.DeviceId);
-            }
-        }
-        return errors;
-    }
 
     private static void InitLogger()
     {
@@ -86,4 +77,10 @@ internal class Program
         }
         return args.ElementAtOrDefault(1) ?? DefaultConfigFile;
     }
+
+    private static string[] ParseDeviceIds(string importFile) =>
+        File.ReadAllLines(importFile)
+            .Where(line => !string.IsNullOrWhiteSpace(line))
+            .Select(line => line.Split(';')[0])
+            .ToArray();
 }

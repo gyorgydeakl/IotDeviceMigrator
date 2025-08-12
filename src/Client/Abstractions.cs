@@ -12,11 +12,11 @@ public interface IIotClient
 public interface ITargetIotClient : IIotClient
 {
     Task<bool> IsDeviceRegisteredAsync(string deviceId);
-    static abstract ITargetIotClient CreateFromConnectionString(string connectionString);
+    static abstract ITargetIotClient Create(string name, string connectionString);
 }
 
 public interface ISourceIotClient : IIotClient
 {
     Task<TwinProperties?> GetPropertiesAsync(string deviceId);
-    static abstract ISourceIotClient CreateFromConnectionString(string connectionString);
+    static abstract ISourceIotClient Create(string name, string connectionString);
 }

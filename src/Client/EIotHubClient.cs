@@ -16,7 +16,7 @@ public class EIotHubClient : ITargetIotClient
         throw new NotImplementedException();
     }
 
-    public static ITargetIotClient CreateFromConnectionString(string connectionString)
+    public static ITargetIotClient Create(string name, string connectionString)
     {
         throw new NotImplementedException();
     }

@@ -10,9 +10,9 @@ public record Config
     public required MigrationConfig Migration {get; init;}
     public required ConnectionConfig Connection {get; init;}
 
-    public static async Task<Config> FromFileAsync(string configFileName)
+    public static Config FromFile(string configFileName)
     {
-        var config = JsonNode.Parse(await File.ReadAllTextAsync(configFileName));
+        var config = JsonNode.Parse(File.ReadAllText(configFileName));
         if (config is null)
         {
             throw new ConfigParseException($"{configFileName} not found");

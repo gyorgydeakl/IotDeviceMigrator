@@ -1,7 +1,6 @@
 using IotDeviceMigrator.Client;
 using IotDeviceMigrator.Config;
 using IotDeviceMigrator.Migration.Steps;
-using Microsoft.Azure.Devices.Common.Exceptions;
 using Serilog;
 
 namespace IotDeviceMigrator.Migration;
@@ -9,54 +8,82 @@ namespace IotDeviceMigrator.Migration;
 public class DeviceMigrationProcess
 {
 
-
-    public required string DeviceId { get; init;}
     public required MigrationConfig Config { private get; init;}
-    public required ISourceIotClient SourceIotClient { private get; init;}
-    public required ITargetIotClient TargetIotClient { private get; init;}
+    public required List<IMigrationStep> Steps { private get; init; }
 
-    public static DeviceMigrationProcess Create<TSource, TTarget>(string deviceId, Config.Config config)
+    public static DeviceMigrationProcess Create<TSource, TTarget>(Config.Config config)
         where TSource : ISourceIotClient
         where TTarget : ITargetIotClient
     {
+        var source = TSource.Create(config.Connection.SourceHubName, config.Connection.SourceConnectionString);
+        var target = TTarget.Create(config.Connection.TargetHubName, config.Connection.TargetConnectionString);
         return new DeviceMigrationProcess
         {
-            DeviceId = deviceId,
             Config = config.Migration,
-            SourceIotClient = TSource.CreateFromConnectionString(config.Connection.SourceConnectionString),
-            TargetIotClient = TTarget.CreateFromConnectionString(config.Connection.TargetConnectionString),
+            Steps = [
+                new CheckActivity(target),
+                new CheckIdentity(target),
+                new CheckFirmwareVersion(source, config.Migration),
+                new SetupSecondaryEnv(source),
+                new ChangeSecondaryEnvToPrimary(source),
+            ]
         };
     }
-    public async Task<MigrationResult> MigrateAsync()
-    {
-        var checkStep = new CheckActivity(TargetIotClient);
-        List<IMigrationStep> steps =
-        [
-            checkStep,
-            new CheckIdentityInTarget(TargetIotClient),
-            new CheckFirmwareVersion(SourceIotClient, Config),
-            new SetupSecondaryEnv(SourceIotClient),
-            new ChangeSecondaryEnvToPrimary(SourceIotClient),
-        ];
 
+    public async Task<Dictionary<string, MigrationException>> MigrateAllAsync(string[] deviceIds)
+    {
+        Dictionary<string, MigrationException> errors = new();
+        var indexedDevices = deviceIds.Select((d, idx) => (d, idx));
+        foreach (var (deviceId, idx) in indexedDevices)
+        {
+            try
+            {
+                Log.Information(
+                    "(Device {DeviceIdx}/{TotalDeviceCount}) Starting migration for device '{DeviceId}'",
+                    idx + 1,
+                    deviceIds.Length,
+                    deviceId);
+                var result = await MigrateAsync(deviceId);
+                Log.Information(
+                    "(Device {DeviceIdx}/{TotalDeviceCount}) Migration result for device '{DeviceId}': {Result}",
+                    idx + 1,
+                    deviceIds.Length,
+                    deviceId,
+                    result);
+            }
+            catch (MigrationException e)
+            {
+                errors[deviceId] = e;
+                Log.Error(e, "Migration error for device {DeviceId}", deviceId);
+            }
+        }
+        return errors;
+    }
+
+    private async Task<MigrationResult> MigrateAsync(string deviceId)
+    {
+        Log.Information(
+            "Starting migration for device '{DeviceId}'. This will be retried {RetryCount} times, unless the process is cancelled by a known error, or the migration is successful",
+            deviceId,
+            Config.NumberOfRetries);
         foreach (var retryIdx in Enumerable.Range(0, Config.NumberOfRetries))
         {
             Log.Information(
-                "({Idx}/{MaxIdx}) Starting migration for device '{DeviceId}'. This migration consists of {StepCout} steps",
+                "(Try {Idx}/{MaxIdx}) Migrating device '{DeviceId}'. This migration consists of {StepCout} steps",
                 retryIdx + 1,
                 Config.NumberOfRetries,
-                DeviceId,
-                steps.Count);
-
-            foreach (var (step, stepIdx) in steps.Select((s, idx) => (s, idx)))
+                deviceId,
+                Steps.Count);
+            var stepsIndexed = Steps.Select((s, idx) => (s, idx));
+            foreach (var (step, stepIdx) in stepsIndexed)
             {
-                Log.Information("Executing step {StepIdx} out of {MaxStepIdx} on hub {HubName}: {Name}",
+                Log.Information("Executing step {StepIdx} out of {MaxStepIdx} on hub '{HubName}': {Name}",
                     stepIdx + 1,
-                    steps.Count,
+                    Steps.Count,
                     step.HubClient.Name,
                     step.Name);
 
-                var result = await step.StepAsync(DeviceId);
+                var result = await step.StepAsync(deviceId);
                 if (result is not null)
                 {
                     Log.Information("Migration finished, retrying in {RetryDelayInSeconds} seconds", Config.RetryDelayInSeconds);
@@ -64,7 +91,7 @@ public class DeviceMigrationProcess
                 }
                 Log.Information("Encountered no issues during step {StepIdx} out of {MaxStepIdx}: {Name}",
                     stepIdx + 1,
-                    steps.Count,
+                    Steps.Count,
                     step.Name);
             }
 
@@ -73,17 +100,17 @@ public class DeviceMigrationProcess
             Thread.Sleep(TimeSpan.FromSeconds(Config.RetryDelayInSeconds));
         }
 
-        // Should run the first check one last time after
+        // Should run the first check one last time after the last retry
+        var checkStep = Steps[0];
         Log.Information("Checking last time: {Name}", checkStep.Name);
-        var finalCheckResult = await checkStep.StepAsync(DeviceId);
+        var finalCheckResult = await checkStep.StepAsync(deviceId);
         if (finalCheckResult is null)
         {
-            throw new MigrationException(DeviceId, $"Tried to migrate {Config.NumberOfRetries} times, but did not succeed.");
+            throw new MigrationException(deviceId, $"Tried to migrate {Config.NumberOfRetries} times, but did not succeed.");
         }
 
         Log.Information("Migration finished successfully");
         return finalCheckResult;
-
     }
 }
 

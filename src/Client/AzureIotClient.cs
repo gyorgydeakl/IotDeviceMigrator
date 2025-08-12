@@ -12,18 +12,18 @@ public class AzureIotClient : ISourceIotClient, ITargetIotClient
     public required string Name { get; init;}
 
 
-    static ITargetIotClient ITargetIotClient.CreateFromConnectionString(string connectionString) =>
+    static ITargetIotClient ITargetIotClient.Create(string name, string connectionString) =>
         new AzureIotClient
         {
-            Name = connectionString.Split(';')[0].Split('=')[1],
+            Name = name,
             ServiceClient = ServiceClient.CreateFromConnectionString(connectionString),
             Registry = RegistryManager.CreateFromConnectionString(connectionString)
         };
 
-    static ISourceIotClient ISourceIotClient.CreateFromConnectionString(string connectionString) =>
+    static ISourceIotClient ISourceIotClient.Create(string name, string connectionString) =>
         new AzureIotClient
         {
-            Name = connectionString.Split(';')[0].Split('=')[1],
+            Name = name,
             ServiceClient = ServiceClient.CreateFromConnectionString(connectionString),
             Registry = RegistryManager.CreateFromConnectionString(connectionString)
         };
@@ -32,13 +32,13 @@ public class AzureIotClient : ISourceIotClient, ITargetIotClient
     {
         try
         {
-            await Registry.GetDeviceAsync(deviceId);
+            var device = await Registry.GetDeviceAsync(deviceId);
+            return device is not null;
         }
         catch (DeviceNotFoundException)
         {
             return false;
         }
-        return true;
     }
 
     public async Task<TwinProperties?> GetPropertiesAsync(string deviceId)
