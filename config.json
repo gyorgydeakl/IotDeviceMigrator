@@ -2,15 +2,15 @@
   "Connection": {
     "SourceConnectionString": "HostName=cmgtestIoTHub2.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=+6Og9v6MwNPazLiM7yqchGQOvl5Zs61tFAIoTCGrceU=",
     "TargetConnectionString": "HostName=cmgtestIoTHub2.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=+6Og9v6MwNPazLiM7yqchGQOvl5Zs61tFAIoTCGrceU=",
-    "SourceHubName": "Test Iot Hub Target",
-    "TargetHubName": "Test Iot Hub Source"
+    "SourceHubName": "QAS",
+    "TargetHubName": "IOT Hub"
   },
   "Migration": {
-    "NumberOfRetries" : 5,
+    "NumberOfRetries" : 10,
     "RetryDelayInSeconds" : 60,
     "CorrectFirmwareVersion" : "v3.1-2507031257",
     "FirmwarePath": ["devInfo", "swVersion"]
   },
-  "LogFile": "log.txt",
+  "LogFile": "logs/migrate-.log",
   "DeviceIdImport": "devices.csv"
 }

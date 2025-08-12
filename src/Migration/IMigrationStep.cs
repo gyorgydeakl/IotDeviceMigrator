@@ -6,5 +6,5 @@ public interface IMigrationStep
 {
     string Name { get; }
     IIotClient HubClient { get; }
-    Task<MigrationResult?> StepAsync(string deviceId);
+    Task<MigrationResult> StepAsync(string deviceId);
 }

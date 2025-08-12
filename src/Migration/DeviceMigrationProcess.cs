@@ -7,23 +7,22 @@ namespace IotDeviceMigrator.Migration;
 
 public class DeviceMigrationProcess
 {
-
     public required MigrationConfig Config { private get; init;}
     public required List<IMigrationStep> Steps { private get; init; }
 
-    public static DeviceMigrationProcess Create<TSource, TTarget>(Config.Config config)
+    public static DeviceMigrationProcess Create<TSource, TTarget>(MigrationConfig migration, ConnectionConfig connection)
         where TSource : ISourceIotClient
         where TTarget : ITargetIotClient
     {
-        var source = TSource.Create(config.Connection.SourceHubName, config.Connection.SourceConnectionString);
-        var target = TTarget.Create(config.Connection.TargetHubName, config.Connection.TargetConnectionString);
+        var source = TSource.Create(connection.SourceHubName, connection.SourceConnectionString);
+        var target = TTarget.Create(connection.TargetHubName, connection.TargetConnectionString);
         return new DeviceMigrationProcess
         {
-            Config = config.Migration,
+            Config = migration,
             Steps = [
                 new CheckActivity(target),
                 new CheckIdentity(target),
-                new CheckFirmwareVersion(source, config.Migration),
+                new CheckFirmwareVersion(source, migration),
                 new SetupSecondaryEnv(source),
                 new ChangeSecondaryEnvToPrimary(source),
             ]
@@ -77,14 +76,16 @@ public class DeviceMigrationProcess
             var stepsIndexed = Steps.Select((s, idx) => (s, idx));
             foreach (var (step, stepIdx) in stepsIndexed)
             {
-                Log.Information("Executing step {StepIdx} out of {MaxStepIdx} on hub '{HubName}': {Name}",
+                Log.Information("(Try {Idx}/{MaxIdx}, Step {StepIdx}/{MaxStepIdx}) on hub '{HubName}': {Name}",
+                    retryIdx + 1,
+                    Config.NumberOfRetries,
                     stepIdx + 1,
                     Steps.Count,
                     step.HubClient.Name,
                     step.Name);
 
                 var result = await step.StepAsync(deviceId);
-                if (result is not null)
+                if (!result.Continue)
                 {
                     Log.Information("Migration finished, retrying in {RetryDelayInSeconds} seconds", Config.RetryDelayInSeconds);
                     return result;
@@ -114,7 +115,7 @@ public class DeviceMigrationProcess
     }
 }
 
-public record MigrationResult(string DeviceId);
+public record MigrationResult(bool Continue);
 
 public class MigrationException(string deviceId, string message) : Exception($"Error migrating device {deviceId}: {message}");
 

@@ -8,7 +8,7 @@ public class SetupSecondaryEnv(ISourceIotClient source) : IMigrationStep
 
     public string Name { get; } = "Setting up secondary environment";
     public IIotClient HubClient => source;
-    public async Task<MigrationResult?> StepAsync(string deviceId)
+    public async Task<MigrationResult> StepAsync(string deviceId)
     {
         var setupSecondaryEnvResult = await source.InvokeMethodAsync(deviceId, SetIotConfigMethod, SetupSecondaryEnvPayload);
         if (setupSecondaryEnvResult.Status != 200)
@@ -16,7 +16,7 @@ public class SetupSecondaryEnv(ISourceIotClient source) : IMigrationStep
             throw new DeviceMethodInvocationException(deviceId, SetIotConfigMethod, $"Failed to set up secondary environment: {setupSecondaryEnvResult.GetPayloadAsJson()}");
         }
 
-        return null;
+        return new MigrationResult(true);
     }
 
     private static readonly object SetupSecondaryEnvPayload =

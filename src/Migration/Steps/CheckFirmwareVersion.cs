@@ -1,5 +1,6 @@
 using IotDeviceMigrator.Client;
 using IotDeviceMigrator.Config;
+using Serilog;
 
 namespace IotDeviceMigrator.Migration.Steps;
 
@@ -7,7 +8,7 @@ public class CheckFirmwareVersion(ISourceIotClient source, MigrationConfig confi
 {
     public string Name { get; } = "Checking if firmware version is correct";
     public IIotClient HubClient => source;
-    public async Task<MigrationResult?> StepAsync(string deviceId)
+    public async Task<MigrationResult> StepAsync(string deviceId)
     {
         var properties = await source.GetPropertiesAsync(deviceId);
         if (properties is null)
@@ -31,6 +32,7 @@ public class CheckFirmwareVersion(ISourceIotClient source, MigrationConfig confi
             throw new MigrationException(deviceId, $"Firmware version '{firmwareVersion}' is not correct. Should be '{config.CorrectFirmwareVersion}'");
         }
 
-        return null;
+        Log.Information("Firmware version of device '{DeviceId}' is '{Version}', which is correct", deviceId, firmwareVersion);
+        return new MigrationResult(true);
     }
 }

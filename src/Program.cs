@@ -12,16 +12,17 @@ internal class Program
 
     public static async Task Main(string[] args)
     {
-        InitLogger();
         try
         {
             var config = Config.FromFile(GetConfigFileName(args));
+            InitLogger(config.LogFile);
+
             Log.Information("Parsed Config: {ConfigJson}", config.ToJsonString());
 
             var deviceIds = ParseDeviceIds(config.DeviceIdImport);
             Log.Information("Parsed device ids: {DeviceIds}", string.Join(", ", deviceIds));
 
-            var process = DeviceMigrationProcess.Create<SourceClient, TargetClient>(config);
+            var process = DeviceMigrationProcess.Create<SourceClient, TargetClient>(config.Migration, config.Connection);
             Log.Information(
                 "This script is going to migrate these devices from '{SourceHubName}' to '{TargetHubName}'",
                 config.Connection.SourceHubName,
@@ -44,7 +45,7 @@ internal class Program
         }
         catch (ConfigParseException e)
         {
-            Log.Fatal(e, "Error while parsing config: {Message}", e.Message);
+            Log.Fatal(e, "{ConfigFileName} must match the shape of the Config class", GetConfigFileName(args));
         }
         catch (Exception e)
         {
@@ -53,7 +54,7 @@ internal class Program
     }
 
 
-    private static void InitLogger()
+    private static void InitLogger(string logFile)
     {
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Information()
@@ -61,7 +62,7 @@ internal class Program
             .WriteTo.Console(outputTemplate:
                 "{Timestamp:HH:mm:ss} [{Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
             .WriteTo.File(
-                path: "logs/migrate-.log",
+                path: logFile,
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 7,
                 shared: true,

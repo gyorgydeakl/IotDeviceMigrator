@@ -27,13 +27,12 @@ public record Config
         };
     }
 
-    public string ToJsonString()
+    private static readonly JsonSerializerOptions SerializerOptions = new()
     {
-        return JsonSerializer.Serialize(this, options: new JsonSerializerOptions
-        {
-            WriteIndented = true
-        });
-    }
+        WriteIndented = true
+    };
+
+    public string ToJsonString() => JsonSerializer.Serialize(this, SerializerOptions);
 }
 
 public class ConfigParseException(string message) : Exception(message);

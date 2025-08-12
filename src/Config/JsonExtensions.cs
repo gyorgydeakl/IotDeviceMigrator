@@ -12,12 +12,19 @@ internal static class JsonExtensions
             throw new ConfigParseException($"'{key}' not found in config file '{configFileName}'");
         }
 
-        var value = valueNode.GetValue<T>();
-        if (value is null)
+        try
         {
-            throw new ConfigParseException($"The config '{key}' is expected to be of type '{typeof(T).Name}', but it is of type '{valueNode.GetType().Name}'");
+            return valueNode.GetValue<T>();
         }
-        return value;
+        catch (InvalidOperationException)
+        {
+            throw new ConfigParseException(
+                $"The config '{key}' is expected to be of type '{typeof(T).Name}', but it is of type '{valueNode.GetValueKind()}'");
+        }
+        catch (FormatException)
+        {
+            throw new ConfigParseException($"The config '{key}' is expected to be of type '{typeof(T).Name}', but it is not a valid value");
+        }
     }
 
     public static T[] ExpectArray<T>(this JsonNode node, string key, string configFileName)

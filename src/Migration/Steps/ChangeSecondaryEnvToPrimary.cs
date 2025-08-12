@@ -8,7 +8,7 @@ public class ChangeSecondaryEnvToPrimary(ISourceIotClient source) : IMigrationSt
 
     public string Name { get; } = "Change secondary environment as primary";
     public IIotClient HubClient => source;
-    public async Task<MigrationResult?> StepAsync(string deviceId)
+    public async Task<MigrationResult> StepAsync(string deviceId)
     {
         var changeActiveEnvResult = await source.InvokeMethodAsync(deviceId, SetIotConfigMethod, ChangeActiveEnvPayload);
         if (changeActiveEnvResult.Status != 200) // TODO: What status do I check?
@@ -16,7 +16,7 @@ public class ChangeSecondaryEnvToPrimary(ISourceIotClient source) : IMigrationSt
             throw new DeviceMethodInvocationException(deviceId, SetIotConfigMethod, $"Failed to change active environment: {changeActiveEnvResult.GetPayloadAsJson()}");
         }
 
-        return null;
+        return new MigrationResult(true);
     }
 
     private static readonly object ChangeActiveEnvPayload =
