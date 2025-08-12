@@ -96,7 +96,6 @@ public class DeviceMigrationProcess
                     step.Name);
             }
 
-
             Log.Information("Migration process finished, retrying in {RetryDelayInSeconds} seconds", Config.RetryDelayInSeconds);
             Thread.Sleep(TimeSpan.FromSeconds(Config.RetryDelayInSeconds));
         }

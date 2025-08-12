@@ -1,22 +1,19 @@
-﻿using IotDeviceMigrator.Client;
-using IotDeviceMigrator.Config;
+﻿using IotDeviceMigrator.Config;
 using IotDeviceMigrator.Migration;
 using Serilog;
-
 using SourceClient = IotDeviceMigrator.Client.AzureIotClient;
 using TargetClient = IotDeviceMigrator.Client.AzureIotClient;
 
+namespace IotDeviceMigrator;
+
 internal class Program
 {
-    private const string DefaultConfigFile = "config.json";
-
     public static async Task Main(string[] args)
     {
         try
         {
-            var config = Config.FromFile(GetConfigFileName(args));
+            var config = Config.Config.FromFile(GetConfigFileName(args));
             InitLogger(config.LogFile);
-
             Log.Information("Parsed Config: {ConfigJson}", config.ToJsonString());
 
             var deviceIds = ParseDeviceIds(config.DeviceIdImport);
@@ -72,11 +69,12 @@ internal class Program
 
     private static string GetConfigFileName(string[] args)
     {
+        const string defaultConfigFile = "config.json";
         if (args.Length > 1)
         {
             throw new ArgumentException("Too many arguments. Only 1 (or 0) argument is allowed: config file name.");
         }
-        return args.ElementAtOrDefault(1) ?? DefaultConfigFile;
+        return args.ElementAtOrDefault(1) ?? defaultConfigFile;
     }
 
     private static string[] ParseDeviceIds(string importFile) =>
