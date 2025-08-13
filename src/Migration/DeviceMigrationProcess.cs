@@ -38,17 +38,18 @@ public class DeviceMigrationProcess
             try
             {
                 Log.Information(
-                    "(Device {DeviceIdx}/{TotalDeviceCount}) Starting migration for device '{DeviceId}'",
-                    idx + 1,
-                    deviceIds.Length,
-                    deviceId);
-                var result = await MigrateAsync(deviceId);
-                Log.Information(
-                    "(Device {DeviceIdx}/{TotalDeviceCount}) Migration result for device '{DeviceId}': {Result}",
+                    "(Device {DeviceIdx}/{TotalDeviceCount}: '{DeviceId}') Starting migration for device. This will be " +
+                    "retried {RetryCount} times, unless the process is cancelled by a known error, or the migration is successful",
                     idx + 1,
                     deviceIds.Length,
                     deviceId,
-                    result);
+                    Config.NumberOfRetries);
+                await MigrateWithRetriesAsync(deviceId);
+                Log.Information(
+                    "(Device {DeviceIdx}/{TotalDeviceCount}: '{DeviceId}') Migration successful",
+                    idx + 1,
+                    deviceIds.Length,
+                    deviceId);
             }
             catch (MigrationException e)
             {
@@ -59,20 +60,10 @@ public class DeviceMigrationProcess
         return errors;
     }
 
-    private async Task<MigrationResult> MigrateAsync(string deviceId)
+    private async Task MigrateWithRetriesAsync(string deviceId)
     {
-        Log.Information(
-            "Starting migration for device '{DeviceId}'. This will be retried {RetryCount} times, unless the process is cancelled by a known error, or the migration is successful",
-            deviceId,
-            Config.NumberOfRetries);
         foreach (var retryIdx in Enumerable.Range(0, Config.NumberOfRetries))
         {
-            Log.Information(
-                "(Try {Idx}/{MaxIdx}) Migrating device '{DeviceId}'. This migration consists of {StepCout} steps",
-                retryIdx + 1,
-                Config.NumberOfRetries,
-                deviceId,
-                Steps.Count);
             var stepsIndexed = Steps.Select((s, idx) => (s, idx));
             foreach (var (step, stepIdx) in stepsIndexed)
             {
@@ -87,8 +78,8 @@ public class DeviceMigrationProcess
                 var result = await step.StepAsync(deviceId);
                 if (!result.Continue)
                 {
-                    Log.Information("Migration finished, retrying in {RetryDelayInSeconds} seconds", Config.RetryDelayInSeconds);
-                    return result;
+                    Log.Information("Migration finished successfully");
+                    return;
                 }
                 Log.Information("Encountered no issues during step {StepIdx} out of {MaxStepIdx}: {Name}",
                     stepIdx + 1,
@@ -104,17 +95,15 @@ public class DeviceMigrationProcess
         var checkStep = Steps[0];
         Log.Information("Checking last time: {Name}", checkStep.Name);
         var finalCheckResult = await checkStep.StepAsync(deviceId);
-        if (finalCheckResult is null)
+        if (finalCheckResult.Continue)
         {
             throw new MigrationException(deviceId, $"Tried to migrate {Config.NumberOfRetries} times, but did not succeed.");
         }
 
         Log.Information("Migration finished successfully");
-        return finalCheckResult;
     }
 }
 
-public record MigrationResult(bool Continue);
 
 public class MigrationException(string deviceId, string message) : Exception($"Error migrating device {deviceId}: {message}");
 

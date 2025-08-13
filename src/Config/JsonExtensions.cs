@@ -27,7 +27,7 @@ internal static class JsonExtensions
         }
     }
 
-    public static T[] ExpectArray<T>(this JsonNode node, string key, string configFileName)
+    public static T[] ExpectArray<T>(this JsonNode node, string key, string configFileName, int minLength)
     {
         var arrayNode = node[key];
         if (arrayNode is null)
@@ -42,7 +42,7 @@ internal static class JsonExtensions
 
         try
         {
-            return jsonArray.Select(item =>
+            var result = jsonArray.Select(item =>
             {
                 if (item is null)
                 {
@@ -50,6 +50,12 @@ internal static class JsonExtensions
                 }
                 return item.GetValue<T>();
             }).ToArray();
+
+            if (result.Length < minLength)
+            {
+                throw new ConfigParseException($"Array '{key}' in config file '{configFileName}' must have at least {minLength} elements");
+            }
+            return result;
         }
         catch (InvalidOperationException)
         {

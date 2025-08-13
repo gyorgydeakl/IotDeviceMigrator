@@ -8,7 +8,7 @@ public class CheckFirmwareVersion(ISourceIotClient source, MigrationConfig confi
 {
     public string Name { get; } = "Checking if firmware version is correct";
     public IIotClient HubClient => source;
-    public async Task<MigrationResult> StepAsync(string deviceId)
+    public async Task<StepSuccessResult> StepAsync(string deviceId)
     {
         var properties = await source.GetPropertiesAsync(deviceId);
         if (properties is null)
@@ -17,7 +17,7 @@ public class CheckFirmwareVersion(ISourceIotClient source, MigrationConfig confi
         }
 
         var reported = properties.Reported;
-        foreach (var pathSegment in config.FirmwarePath)
+        foreach (var pathSegment in config.FirmwarePath.SkipLast(1))
         {
             if (!reported.Contains(pathSegment))
             {
@@ -25,7 +25,7 @@ public class CheckFirmwareVersion(ISourceIotClient source, MigrationConfig confi
             }
             reported = reported[pathSegment];
         }
-        var firmwareVersion = reported.ToString();
+        var firmwareVersion = reported[config.FirmwarePath[^1]].ToString();
         var isFirmwareCorrect = firmwareVersion.Equals(config.CorrectFirmwareVersion, StringComparison.InvariantCultureIgnoreCase);
         if (!isFirmwareCorrect)
         {
@@ -33,6 +33,6 @@ public class CheckFirmwareVersion(ISourceIotClient source, MigrationConfig confi
         }
 
         Log.Information("Firmware version of device '{DeviceId}' is '{Version}', which is correct", deviceId, firmwareVersion);
-        return new MigrationResult(true);
+        return new StepSuccessResult(true);
     }
 }

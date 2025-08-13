@@ -34,5 +34,50 @@ public record Config
 
     public string ToJsonString() => JsonSerializer.Serialize(this, SerializerOptions);
 }
+public record ConnectionConfig
+{
+    public required string SourceConnectionString {get; init;}
+    public required string TargetConnectionString {get; init;}
+    public required string SourceHubName {get; init;}
+    public required string TargetHubName {get; init;}
 
+    public static ConnectionConfig FromJson(JsonNode? json, string configFileName)
+    {
+        if (json is null)
+        {
+            throw new ConfigParseException($"'Connection' not found in config file '{configFileName}'");
+        }
+
+        return new ConnectionConfig()
+        {
+            SourceConnectionString = json.ExpectValue<string>("SourceConnectionString", configFileName),
+            TargetConnectionString = json.ExpectValue<string>("TargetConnectionString", configFileName),
+            SourceHubName = json.ExpectValue<string>("SourceHubName", configFileName),
+            TargetHubName = json.ExpectValue<string>("TargetHubName", configFileName)
+        };
+    }
+}
+
+public record MigrationConfig
+{
+    public required int NumberOfRetries {get; init;}
+    public required int RetryDelayInSeconds {get; init;}
+    public required string CorrectFirmwareVersion {get; init;}
+    public required string[] FirmwarePath {get; init;}
+
+    public static MigrationConfig FromJson(JsonNode? json, string configFileName)
+    {
+        if (json is null)
+        {
+            throw new ConfigParseException($"'Migration' not found in config file '{configFileName}'");
+        }
+        return new MigrationConfig
+        {
+            NumberOfRetries = json.ExpectValue<int>("NumberOfRetries", configFileName),
+            RetryDelayInSeconds = json.ExpectValue<int>("RetryDelayInSeconds", configFileName),
+            CorrectFirmwareVersion = json.ExpectValue<string>("CorrectFirmwareVersion", configFileName),
+            FirmwarePath = json.ExpectArray<string>("FirmwarePath", configFileName, 1)
+        };
+    }
+}
 public class ConfigParseException(string message) : Exception(message);

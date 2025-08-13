@@ -12,8 +12,9 @@ internal class Program
     {
         try
         {
+            InitLogger("logs/migrate-.log");
             var config = Config.Config.FromFile(GetConfigFileName(args));
-            InitLogger(config.LogFile);
+
             Log.Information("Parsed Config: {ConfigJson}", config.ToJsonString());
 
             var deviceIds = ParseDeviceIds(config.DeviceIdImport);
