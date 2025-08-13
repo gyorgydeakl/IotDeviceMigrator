@@ -1,4 +1,6 @@
 using IotDeviceMigrator.Client;
+using Microsoft.Azure.Devices.Common;
+using Microsoft.Azure.Devices.Common.Exceptions;
 
 namespace IotDeviceMigrator.Migration.Steps;
 
@@ -10,11 +12,21 @@ public class SetupSecondaryEnv(ISourceIotClient source) : IMigrationStep
     public IIotClient HubClient => source;
     public async Task<StepSuccessResult> StepAsync(string deviceId)
     {
-        var setupSecondaryEnvResult = await source.InvokeMethodAsync(deviceId, SetIotConfigMethod, SetupSecondaryEnvPayload);
-        if (setupSecondaryEnvResult.Status != 200)
+        try
         {
-            throw new DeviceMethodInvocationException(deviceId, SetIotConfigMethod, $"Failed to set up secondary environment: {setupSecondaryEnvResult.GetPayloadAsJson()}");
+            var setupSecondaryEnvResult =
+                await source.InvokeMethodAsync(deviceId, SetIotConfigMethod, SetupSecondaryEnvPayload);
+            if (setupSecondaryEnvResult.Status != 200)
+            {
+                throw new DeviceMethodInvocationException(deviceId, SetIotConfigMethod,
+                    $"Failed to set up secondary environment: {setupSecondaryEnvResult.GetPayloadAsJson()}");
+            }
         }
+        catch (DeviceNotFoundException e)
+        {
+            throw new DeviceMethodInvocationException(deviceId, SetIotConfigMethod, e.Message);
+        }
+
 
         return new StepSuccessResult(true);
     }

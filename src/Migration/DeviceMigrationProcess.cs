@@ -81,9 +81,12 @@ public class DeviceMigrationProcess
                     Log.Information("Migration finished successfully");
                     return;
                 }
-                Log.Information("Encountered no issues during step {StepIdx} out of {MaxStepIdx}: {Name}",
+                Log.Information("(Try {Idx}/{MaxIdx}, Step {StepIdx}/{MaxStepIdx}) executed step successfully on hub '{HubName}': {Name}",
+                    retryIdx + 1,
+                    Config.NumberOfRetries,
                     stepIdx + 1,
                     Steps.Count,
+                    step.HubClient.Name,
                     step.Name);
             }
 
