@@ -106,8 +106,6 @@ public class DeviceMigrationProcess
         Log.Information("Migration finished successfully");
     }
 }
-
-
 public class MigrationException(string deviceId, string message) : Exception($"Error migrating device {deviceId}: {message}");
 
 public class DeviceMethodInvocationException(string deviceId, string methodName, string message) : MigrationException(deviceId, $"Error while invoking method '{methodName}': {message}");
