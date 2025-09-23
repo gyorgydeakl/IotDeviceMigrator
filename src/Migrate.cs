@@ -6,18 +6,18 @@ using TargetClient = IotDeviceMigrator.Client.AzureIotClient;
 
 namespace IotDeviceMigrator;
 
-internal class Program
+internal class Migrate
 {
     public static async Task Main(string[] args)
     {
         try
         {
-            InitLogger("logs/migrate-.log");
+            Logging.Init("logs/migrate-.log");
             var config = Config.Config.FromFile(GetConfigFileName(args));
 
             Log.Information("Parsed Config: {ConfigJson}", config.ToJsonString());
 
-            var deviceIds = ParseDeviceIds(config.DeviceIdImport);
+            var deviceIds = Parse.ParseDeviceIds(config.DeviceIdImport);
             Log.Information("Parsed device ids: {DeviceIds}", string.Join(", ", deviceIds));
 
             var process = DeviceMigrationProcess.Create<SourceClient, TargetClient>(config.Migration, config.Connection);
@@ -51,23 +51,6 @@ internal class Program
         }
     }
 
-
-    private static void InitLogger(string logFile)
-    {
-        Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Information()
-            .Enrich.FromLogContext()
-            .WriteTo.Console(outputTemplate:
-                "{Timestamp:HH:mm:ss} [{Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
-            .WriteTo.File(
-                path: logFile,
-                rollingInterval: RollingInterval.Day,
-                retainedFileCountLimit: 7,
-                shared: true,
-                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
-            .CreateLogger();
-    }
-
     private static string GetConfigFileName(string[] args)
     {
         const string defaultConfigFile = "config.json";
@@ -77,10 +60,4 @@ internal class Program
         }
         return args.ElementAtOrDefault(1) ?? defaultConfigFile;
     }
-
-    private static string[] ParseDeviceIds(string importFile) =>
-        File.ReadAllLines(importFile)
-            .Where(line => !string.IsNullOrWhiteSpace(line))
-            .Select(line => line.Split(';')[0])
-            .ToArray();
 }
