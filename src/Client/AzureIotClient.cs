@@ -66,6 +66,9 @@ public class AzureIotClient : ISourceIotClient, ITargetIotClient
             ConnectionTimeout = TimeSpan.FromSeconds(5)
         };
         methodInvocation.SetPayloadJson(payloadJson);
-        return await ServiceClient.InvokeDeviceMethodAsync(deviceId, methodInvocation);
+        var result = await ServiceClient.InvokeDeviceMethodAsync(deviceId, methodInvocation);
+
+        Log.Information("Result of {Method} on device {DeviceId} with payload {Payload}: {Result}", methodName, deviceId, payloadJson, result);
+        return result;
     }
 }

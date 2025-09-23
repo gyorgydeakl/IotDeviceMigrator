@@ -1,14 +1,37 @@
+using System.Text.Json;
 using IotDeviceMigrator.Client;
+using IotDeviceMigrator.Common;
+using IotDeviceMigrator.Migration;
+using Serilog;
 
 namespace IotDeviceMigrator;
 using IotClient = AzureIotClient;
-
 public class BatchExecute
 {
-    public static void Main(string[] args)
+    public static async Task Run(Config config, string[] deviceIds)
     {
-        Logging.Init("log.txt");
-        var ids = Parse.ParseDeviceIds("devices.csv");
+        var client = CreateIotClient<IotClient>(config.Connection);
+        var indexedDevices = deviceIds.Select((d, idx) => (d, idx));
+        foreach (var (deviceId, idx) in indexedDevices)
+        {
+            try
+            {
+                const string methodName = "setSpecConfig";
+                await client.InvokeMethodAsync(deviceId, methodName, new
+                {
+                    wsFW = "dsuMender"
+                });
+            }
+            catch (Exception e)
+            {
+                Log.Fatal(e, "Error: {Err}", e);
+            }
+        }
+    }
 
+    private static IIotClient CreateIotClient<TIotClient>(ConnectionConfig config)
+    where TIotClient : ITargetIotClient
+    {
+        return TIotClient.Create(config.TargetHubName, config.TargetConnectionString);
     }
 }

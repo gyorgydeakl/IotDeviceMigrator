@@ -1,5 +1,5 @@
 using IotDeviceMigrator.Client;
-using IotDeviceMigrator.Config;
+using IotDeviceMigrator.Common;
 using Serilog;
 
 namespace IotDeviceMigrator.Migration.Steps;
