@@ -1,7 +1,5 @@
-using System.Text.Json;
 using IotDeviceMigrator.Client;
 using IotDeviceMigrator.Common;
-using IotDeviceMigrator.Migration;
 using Serilog;
 
 namespace IotDeviceMigrator;

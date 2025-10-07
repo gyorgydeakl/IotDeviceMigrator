@@ -1,6 +1,6 @@
 using Serilog;
 
-namespace IotDeviceMigrator;
+namespace IotDeviceMigrator.Common;
 
 public static class Logging
 {

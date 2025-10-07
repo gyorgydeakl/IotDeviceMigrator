@@ -5,12 +5,12 @@
     "SourceHubName": "QAS",
     "TargetHubName": "IOT Hub"
   },
-//  "Migration": {
-//    "NumberOfRetries" : 10,
-//    "RetryDelayInSeconds" : 60,
-//    "CorrectFirmwareVersion" : "v3.1-2507031257",
-//    "FirmwarePath": ["devInfo", "swVersion"]
-//  },
+  "Migration": {
+    "NumberOfRetries" : 10,
+    "RetryDelayInSeconds" : 60,
+    "CorrectFirmwareVersion" : "v3.1-2507031257",
+    "FirmwarePath": ["devInfo", "swVersion"]
+  },
   "LogFile": "logs/migrate-.log",
   "DeviceIdImport": "devices.csv"
 }

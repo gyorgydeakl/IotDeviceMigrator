@@ -1,4 +1,4 @@
-namespace IotDeviceMigrator;
+namespace IotDeviceMigrator.Common;
 
 public static class Parse
 {

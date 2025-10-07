@@ -1,11 +1,9 @@
-﻿using System.Text.Json;
-using IotDeviceMigrator.Common;
-using IotDeviceMigrator.Migration;
+﻿using IotDeviceMigrator.Common;
 using Serilog;
 using SourceClient = IotDeviceMigrator.Client.AzureIotClient;
 using TargetClient = IotDeviceMigrator.Client.AzureIotClient;
 
-namespace IotDeviceMigrator;
+namespace IotDeviceMigrator.Migration;
 
 public class Migrate
 {
