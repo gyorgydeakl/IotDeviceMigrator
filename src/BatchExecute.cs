@@ -14,11 +14,9 @@ public class BatchExecute
         {
             try
             {
-                const string methodName = "setSpecConfig";
-                await client.InvokeMethodAsync(deviceId, methodName, new
-                {
-                    wsFW = "dsuMender"
-                });
+                await client.InvokeMethodAsync(deviceId,
+                    methodName: "setSpecConfig",
+                    payload: new { wsFW = "dsuMender" });
             }
             catch (Exception e)
             {
