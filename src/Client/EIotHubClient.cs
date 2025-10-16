@@ -2,6 +2,9 @@ using Microsoft.Azure.Devices;
 
 namespace IotDeviceMigrator.Client;
 
+/// <summary>
+/// E-IoT Hub client, should be implemented when migrating to a E-IoT. 
+/// </summary>
 public class EIotHubClient : ITargetIotClient
 {
     public string Name => throw new NotImplementedException();

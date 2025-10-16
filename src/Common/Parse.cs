@@ -4,6 +4,9 @@ namespace IotDeviceMigrator.Common;
 
 public enum Mode { Migrate, Batch }
 
+/// <summary>
+/// Command line options.
+/// </summary>
 class Options
 {
     [Value(0, MetaName = "mode",

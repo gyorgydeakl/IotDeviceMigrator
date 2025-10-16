@@ -11,10 +11,11 @@ public class Program
     public static async Task Main(string[] args)
     {
         var opts = new Parser(cfg =>
-        {
-            cfg.CaseInsensitiveEnumValues = true;
-            cfg.HelpWriter = Console.Error;
-        }).ParseArguments<Options>(args);
+            {
+                cfg.CaseInsensitiveEnumValues = true;
+                cfg.HelpWriter = Console.Error;
+            })
+            .ParseArguments<Options>(args);
         if (opts.Tag != ParserResultType.Parsed)
         {
             await Console.Error.WriteLineAsync("Error parsing arguments. CLI parameter usage: [migrate|batch] [-c|--config <FILE>]");

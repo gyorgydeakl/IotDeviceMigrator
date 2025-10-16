@@ -5,8 +5,17 @@ using TargetClient = IotDeviceMigrator.Client.AzureIotClient;
 
 namespace IotDeviceMigrator.Migration;
 
+/// <summary>
+/// Entrypoint for running the device migration workflow end-to-end.
+/// Orchestrates creation of the migration process and aggregates results across devices.
+/// </summary>
 public class Migrate
 {
+    /// <summary>
+    /// Runs the migration for the provided set of device IDs using settings from the given configuration.
+    /// </summary>
+    /// <param name="config">Global configuration containing connection and migration settings.</param>
+    /// <param name="deviceIds">List of device identifiers to migrate.</param>
     public static async Task Run(Config config, string[] deviceIds)
     {
         var migrationCfg = config.Migration ?? throw new ArgumentException("Migration must be specified in the config file.");
